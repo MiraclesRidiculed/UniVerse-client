@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaGithub, FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Link from 'next/link';
 
 interface Handles {
 	instagram: string;
@@ -11,7 +12,7 @@ interface Handles {
 }
 
 interface User {
-	pfp: string; // Changed from png to string assuming URL or path
+	picture: string;
 	id: string;
 	name: string;
 	email: string;
@@ -29,13 +30,16 @@ const ProfilePage: React.FC = () => {
 		const fetchUserData = async () => {
 			try {
 				const res = await fetch(
-					'http://localhost:5000/client/students/nigga123',
+					'http://localhost:7000/client/students/nigga123',
 				);
 				if (!res.ok) {
-					throw new Error('Network response was not ok');
+					return console.error(res.text);
+					// Redirect to loading page later
 				}
+
 				const data: User = await res.json();
 				setUser(data);
+				console.log(user);
 			} catch (error: any) {
 				setError(error.message || 'Failed to fetch user data');
 			} finally {
@@ -50,18 +54,17 @@ const ProfilePage: React.FC = () => {
 		<div className="container mx-auto px-4 py-8">
 			<div className="bg-gray-900 shadow-md rounded-lg p-6">
 				<div className="flex items-center space-x-4">
-					{}
 					<Avatar className="w-24 h-24">
-						{user?.pfp ?
-							<AvatarImage src={user.pfp} alt={user.name} />
-						:	<AvatarFallback className="bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-500">
+						{user?.picture ?
+							<AvatarImage src={user.picture} alt={user.name} />
+						:	<AvatarFallback className="bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500">
 								{user?.name ? user.name[0] : 'N/A'}
 							</AvatarFallback>
 						}
 					</Avatar>
-					{}
+
 					<div>
-						<h1 className="text-3xl font-semibold text">
+						<h1 className="text-3xl font-semibold mb-3">
 							{user?.name || 'User Name'}
 						</h1>
 						<p className="text-white">
@@ -75,59 +78,85 @@ const ProfilePage: React.FC = () => {
 						</p>
 					</div>
 				</div>
-				{}
-				<div className="mt-6 border-t border-gray-200 pt-6">
-					<h2 className="text-2xl font-semibold text">Connections</h2>
-					<div className="mt-4 flex flex-col space-y-4">
-						<a
-							href={
-								user?.handles.github ||
-								'https://github.com/example'
-							}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center space-x-2 text-gray-300 hover:text-blue-500"
-						>
-							<FaGithub className="w-6 h-6" />
-							<span>GitHub</span>
-						</a>
-						<a
-							href={
-								user?.handles.linkedin ||
-								'https://linkedin.com/in/example'
-							}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center space-x-2 text-gray-300 hover:text-blue-600"
-						>
-							<FaLinkedin className="w-6 h-6" />
-							<span>LinkedIn</span>
-						</a>
-						<a
-							href={
-								user?.handles.instagram ||
-								'https://instagram.com/example'
-							}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center space-x-2 text-gray-300 hover:text-pink-500"
-						>
-							<FaInstagram className="w-6 h-6" />
-							<span>Instagram</span>
-						</a>
-						<a
-							href={
-								user?.handles.facebook ||
-								'https://facebook.com/example'
-							}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center space-x-2 text-gray-300 hover:text-blue-800"
-						>
-							<FaFacebook className="w-6 h-6" />
-							<span>Facebook</span>
-						</a>
-					</div>
+			</div>
+			<div className="bg-gray-900 shadow-md rounded-lg p-6 mt-5">
+				<h2 className="text-2xl font-semibold text">Connections</h2>
+				<div className="mt-4 flex-col space-y-4">
+					<Link
+						href={
+							user?.handles.github || 'https://github.com/example'
+						}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={
+							(
+								'max-w-fit flex space-x-2 text-gray-300' +
+								!user?.handles.github
+							) ?
+								'hidden'
+							:	''
+						}
+					>
+						<FaGithub className="w-6 h-6" />
+						<h3>GitHub</h3>
+					</Link>
+					<Link
+						href={
+							user?.handles.linkedin ||
+							'https://linkedin.com/in/example'
+						}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={
+							(
+								'max-w-fit flex space-x-2 text-blue-400' +
+								!user?.handles.github
+							) ?
+								'hidden'
+							:	''
+						}
+					>
+						<FaLinkedin className="w-6 h-6" />
+						<span>LinkedIn</span>
+					</Link>
+					<Link
+						href={
+							user?.handles.instagram ||
+							'https://instagram.com/example'
+						}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={
+							(
+								'max-w-fit flex space-x-2 text-pink-500' +
+								!user?.handles.github
+							) ?
+								'hidden'
+							:	''
+						}
+					>
+						<FaInstagram className="w-6 h-6" />
+						<span>Instagram</span>
+					</Link>
+					<Link
+						href={
+							user?.handles.facebook ||
+							'https://facebook.com/example'
+						}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={
+							(
+								'max-w-fit flex space-x-2 text-blue-500' +
+								!user?.handles.github
+							) ?
+								'hidden'
+							:	''
+						}
+					>
+						<FaFacebook className="w-6 h-6" />
+						<span>Facebook</span>
+					</Link>
 				</div>
 			</div>
 		</div>
