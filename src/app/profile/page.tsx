@@ -30,7 +30,7 @@ const ProfilePage: React.FC = () => {
 		const fetchUserData = async () => {
 			try {
 				const res = await fetch(
-					'http://localhost:7000/client/students/nigga123',
+					'http://13.201.122.170:7000/client/students/nigga123',
 				);
 				if (!res.ok) {
 					return console.error(res.text);
@@ -39,7 +39,7 @@ const ProfilePage: React.FC = () => {
 
 				const data: User = await res.json();
 				setUser(data);
-				console.log(user);
+				console.log(data);
 			} catch (error: any) {
 				setError(error.message || 'Failed to fetch user data');
 			} finally {
@@ -63,17 +63,17 @@ const ProfilePage: React.FC = () => {
 						}
 					</Avatar>
 
-					<div>
+					<div >
 						<h1 className="text-3xl font-semibold mb-3">
 							{user?.name || 'User Name'}
 						</h1>
-						<p className="text-white">
+						<p className="text-blue-200">
 							{user?.email || 'user@example.com'}
 						</p>
-						<p className="text-white">
+						<p className="text-blue-200">
 							Department: {user?.department || 'N/A'}
 						</p>
-						<p className="text-white">
+						<p className="text-blue-200">
 							Batch: {user?.batch || 'N/A'}
 						</p>
 					</div>
@@ -88,14 +88,7 @@ const ProfilePage: React.FC = () => {
 						}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={
-							(
-								'max-w-fit flex space-x-2 text-gray-300' +
-								!user?.handles.github
-							) ?
-								'hidden'
-							:	''
-						}
+						className={'max-w-fit flex space-x-2 text-pink-500' + (user?.handles.github ? '' : 'hidden')}
 					>
 						<FaGithub className="w-6 h-6" />
 						<h3>GitHub</h3>
@@ -107,17 +100,10 @@ const ProfilePage: React.FC = () => {
 						}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={
-							(
-								'max-w-fit flex space-x-2 text-blue-400' +
-								!user?.handles.github
-							) ?
-								'hidden'
-							:	''
-						}
+						className={'max-w-fit flex space-x-2 text-pink-500' + (user?.handles.linkedin ? '' : 'hidden')}
 					>
 						<FaLinkedin className="w-6 h-6" />
-						<span>LinkedIn</span>
+						<h3>LinkedIn</h3>
 					</Link>
 					<Link
 						href={
@@ -126,17 +112,10 @@ const ProfilePage: React.FC = () => {
 						}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={
-							(
-								'max-w-fit flex space-x-2 text-pink-500' +
-								!user?.handles.github
-							) ?
-								'hidden'
-							:	''
-						}
+						className={'max-w-fit flex space-x-2 text-pink-500' + (user?.handles.instagram ? '' : 'hidden')}
 					>
 						<FaInstagram className="w-6 h-6" />
-						<span>Instagram</span>
+						<h3>Instagram</h3>
 					</Link>
 					<Link
 						href={
@@ -145,17 +124,10 @@ const ProfilePage: React.FC = () => {
 						}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={
-							(
-								'max-w-fit flex space-x-2 text-blue-500' +
-								!user?.handles.github
-							) ?
-								'hidden'
-							:	''
-						}
+						className={'max-w-fit flex space-x-2 text-pink-500' + (user?.handles.facebook ? '' : 'hidden')}
 					>
 						<FaFacebook className="w-6 h-6" />
-						<span>Facebook</span>
+						<h3>Facebook</h3>
 					</Link>
 				</div>
 			</div>
