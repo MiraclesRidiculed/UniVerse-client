@@ -35,12 +35,13 @@ const ProfilePage: React.FC = () => {
 			try {
 				const res = await fetch('http://13.201.122.170:7000/client/students/nigga123');
 				if (!res.ok) {
-					return console.error(res.text);
+					console.error(res.text());
+					return;
 				}
 
 				const data: User = await res.json();
 				setUser(data);
-				setUpdatedHandles(data.handles); 
+				setUpdatedHandles(data.handles);
 				console.log(data);
 			} catch (error: any) {
 				setError(error.message || 'Failed to fetch user data');
@@ -61,10 +62,28 @@ const ProfilePage: React.FC = () => {
 		setUpdatedHandles(prev => prev ? { ...prev, [name]: value } : null);
 	};
 
-	const saveLinks = () => {
+	const saveLinks = async () => {
 		if (updatedHandles && user) {
-			setUser({ ...user, handles: updatedHandles });
+			try {
+				const res = await fetch(`http://13.201.122.170:7000/client/students/${user.id}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						handles: updatedHandles,
+					}),
+				});
+
+				if (!res.ok) {
+					throw new Error('Failed to update user handles');
+				}
+				setUser({ ...user, handles: updatedHandles });
+			} catch (error: any) {
+				setError(error.message || 'Failed to save links');
+			}
 		}
+
 		setEditMode(false);
 	};
 
@@ -73,38 +92,28 @@ const ProfilePage: React.FC = () => {
 			<div className="bg-gray-900 shadow-md rounded-lg p-6">
 				<div className="flex items-center space-x-4">
 					<Avatar className="w-24 h-24">
-						{user?.picture ?
+						{user?.picture ? (
 							<AvatarImage src={user.picture} alt={user.name} />
-						:	<AvatarFallback className="bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500">
+						) : (
+							<AvatarFallback className="bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500">
 								{user?.name ? user.name[0] : 'N/A'}
 							</AvatarFallback>
-						}
+						)}
 					</Avatar>
 
 					<div>
-						<h1 className="text-3xl font-semibold mb-3">
-							{user?.name || 'User Name'}
-						</h1>
-						<p className="text-blue-200">
-							{user?.email || 'user@example.com'}
-						</p>
-						<p className="text-blue-200">
-							Department: {user?.department || 'N/A'}
-						</p>
-						<p className="text-blue-200">
-							Batch: {user?.batch || 'N/A'}
-						</p>
+						<h1 className="text-3xl font-semibold mb-3">{user?.name || 'User Name'}</h1>
+						<p className="text-blue-200">{user?.email || 'user@example.com'}</p>
+						<p className="text-blue-200">Department: {user?.department || 'N/A'}</p>
+						<p className="text-blue-200">Batch: {user?.batch || 'N/A'}</p>
 					</div>
 				</div>
 			</div>
 
 			<div className="bg-gray-900 shadow-md rounded-lg p-6 mt-5">
 				<div className="flex justify-between items-center">
-					<h2 className="text-2xl font-semibold text">Connections</h2>
-					<button 
-						onClick={handleEditToggle} 
-						className="text-sm text-blue-500 underline"
-					>
+					<h2 className="text-2xl font-semibold">Connections</h2>
+					<button onClick={handleEditToggle} className="text-sm text-blue-500 underline">
 						{editMode ? 'Cancel' : 'Edit'}
 					</button>
 				</div>
@@ -122,10 +131,7 @@ const ProfilePage: React.FC = () => {
 								/>
 							</div>
 						))}
-						<button 
-							onClick={saveLinks}
-							className="bg-blue-500 text-white py-1 px-4 rounded"
-						>
+						<button onClick={saveLinks} className="bg-blue-500 text-white py-1 px-4 rounded">
 							Save
 						</button>
 					</div>
