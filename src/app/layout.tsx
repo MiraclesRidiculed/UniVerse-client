@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 import { ReactNode } from 'react';
 import localFont from 'next/font/local';
 import Taskbar from '@/components/taskbar';
@@ -10,10 +10,10 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
-	title: "UniVerse",
-	description: "College Networking Site",
+	title: 'UniVerse',
+	description: 'College Networking Site',
 	icons: {
-	icon: "/favicon.ico", 
+		icon: '/favicon.ico',
 	},
 };
 

@@ -3,5 +3,5 @@ export default function Home() {
 		<h1 className="flex flex-col items-center justify-center h-screen">
 			Nigga 2 ❤
 		</h1>
-	)
+	);
 }

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 import { FaUser, FaRegBookmark, FaSearch, FaHome } from 'react-icons/fa';
 import { FaBuildingColumns } from 'react-icons/fa6';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation'; 
+import { usePathname } from 'next/navigation';
 
 export default function Taskbar() {
-	const pathname = usePathname(); 
+	const pathname = usePathname();
 	return (
 		<div className="flex justify-around p-4 fixed bottom-0 w-full z-10">
 			<Link
@@ -20,7 +20,9 @@ export default function Taskbar() {
 			<Link
 				href={'/resources'}
 				className={`text-2xl p-3 transition-transform transform hover:scale-125 ${
-					pathname === '/resources' ? 'text-green-400' : 'text-blue-400'
+					pathname === '/resources' ? 'text-green-400' : (
+						'text-blue-400'
+					)
 				}`}
 			>
 				<FaRegBookmark />
