@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ReactNode } from 'react';
 import localFont from 'next/font/local';
-import Taskbar from './components/taskbar';
+import Taskbar from '@/components/taskbar';
 
 const mono = localFont({
 	src: 'mono.woff2',
