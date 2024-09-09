@@ -12,6 +12,9 @@ const mono = localFont({
 export const metadata: Metadata = {
 	title: "UniVerse",
 	description: "College Networking Site",
+	icons: {
+	icon: "/favicon.ico", 
+	},
 };
 
 export default function RootLayout({
@@ -23,7 +26,7 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={mono.className + ' bg-gray-950 text-blue-400'}>
 				{children}
-				<Taskbar /> {}
+				<Taskbar />
 			</body>
 		</html>
 	);
