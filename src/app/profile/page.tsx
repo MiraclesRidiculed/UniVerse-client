@@ -1,6 +1,7 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from 'react';
 import { FaGithub, FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Handles {
   instagram: string;
@@ -10,6 +11,7 @@ interface Handles {
 }
 
 interface User {
+  pfp: string; // Changed from png to string assuming URL or path
   id: string;
   name: string;
   email: string;
@@ -26,7 +28,7 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await fetch('http://localhost:7000/client/students/nigga123');
+        const res = await fetch('http://localhost:5000/client/students/nigga123');
         if (!res.ok) {
           throw new Error('Network response was not ok');
         }
@@ -46,11 +48,17 @@ const ProfilePage: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="bg-gray-900 shadow-md rounded-lg p-6">
         <div className="flex items-center space-x-4">
-          {/* User Avatar */}
-          <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-500">
-            {user?.name ? user.name[0] : 'N/A'}
-          </div>
-          {/* User Info */}
+          {}
+          <Avatar className="w-24 h-24">
+            {user?.pfp ? (
+              <AvatarImage src={user.pfp} alt={user.name} />
+            ) : (
+              <AvatarFallback className="bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-500">
+                {user?.name ? user.name[0] : 'N/A'}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          {}
           <div>
             <h1 className="text-3xl font-semibold text">
               {user?.name || 'User Name'}
@@ -66,9 +74,9 @@ const ProfilePage: React.FC = () => {
             </p>
           </div>
         </div>
-        
+        {}
         <div className="mt-6 border-t border-gray-200 pt-6">
-          <h2 className="text-xl font-semibold text">Social Media</h2>
+          <h2 className="text-2xl font-semibold text">Connections</h2>
           <div className="mt-4 flex flex-col space-y-4">
             <a
               href={user?.handles.github || 'https://github.com/example'}
