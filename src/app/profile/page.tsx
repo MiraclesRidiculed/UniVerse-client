@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { FaGithub, FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { get, patch } from '@/lib/RestHandler';
 
 interface Handles {
 	instagram: string;
@@ -33,16 +34,9 @@ const ProfilePage: React.FC = () => {
 	useEffect(() => {
 		const fetchUserData = async () => {
 			try {
-				const res = await fetch('http://13.201.122.170:7000/client/students/nigga123');
-				if (!res.ok) {
-					console.error(res.text());
-					return;
-				}
-
-				const data: User = await res.json();
+				const data: User = await get('/client/students/nigga123');
 				setUser(data);
 				setUpdatedHandles(data.handles);
-				console.log(data);
 			} catch (error: any) {
 				setError(error.message || 'Failed to fetch user data');
 			} finally {
@@ -65,19 +59,10 @@ const ProfilePage: React.FC = () => {
 	const saveLinks = async () => {
 		if (updatedHandles && user) {
 			try {
-				const res = await fetch(`http://13.201.122.170:7000/client/students/${user.id}`, {
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({
-						handles: updatedHandles,
-					}),
+				await patch(`/client/students/${user.id}`, updatedHandles, {
+					json: false
 				});
-
-				if (!res.ok) {
-					throw new Error('Failed to update user handles');
-				}
+				console.log('Done');
 				setUser({ ...user, handles: updatedHandles });
 			} catch (error: any) {
 				setError(error.message || 'Failed to save links');
@@ -142,7 +127,7 @@ const ProfilePage: React.FC = () => {
 								href={user.handles.github}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-pink-500"
+								className="max-w-fit flex space-x-2 text-blue-300"
 							>
 								<FaGithub className="w-6 h-6" />
 								<h3>GitHub</h3>
@@ -153,7 +138,7 @@ const ProfilePage: React.FC = () => {
 								href={user.handles.linkedin}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-pink-500"
+								className="max-w-fit flex space-x-2 text-blue-500"
 							>
 								<FaLinkedin className="w-6 h-6" />
 								<h3>LinkedIn</h3>
@@ -175,7 +160,7 @@ const ProfilePage: React.FC = () => {
 								href={user.handles.facebook}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-pink-500"
+								className="max-w-fit flex space-x-2 text-blue-600"
 							>
 								<FaFacebook className="w-6 h-6" />
 								<h3>Facebook</h3>
