@@ -98,7 +98,7 @@ const ProfilePage: React.FC = () => {
 			<div className="bg-gray-900 shadow-md rounded-lg p-6 mt-5">
 				<div className="flex justify-between items-center">
 					<h2 className="text-2xl font-semibold">Connections</h2>
-					<button onClick={handleEditToggle} className="text-sm text-blue-500 underline">
+					<button onClick={handleEditToggle} className="text-sm text-blue-200">
 						{editMode ? 'Cancel' : 'Edit'}
 					</button>
 				</div>
@@ -112,7 +112,7 @@ const ProfilePage: React.FC = () => {
 									name={platform}
 									value={updatedHandles?.[platform] || ''}
 									onChange={handleInputChange}
-									className="bg-gray-200 rounded px-3 py-1"
+									className="w-full bg-gray-200 rounded px-3 py-1 text-gray-900"
 								/>
 							</div>
 						))}
