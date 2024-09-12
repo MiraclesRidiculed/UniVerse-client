@@ -4,6 +4,8 @@ import { FaGithub, FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { get, patch } from '@/lib/RestHandler';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { redirect } from 'next/navigation';
 
 interface Handles {
 	instagram: string;
@@ -12,7 +14,7 @@ interface Handles {
 	linkedin: string;
 }
 
-interface User {
+interface Student {
 	picture: string;
 	id: string;
 	name: string;
@@ -25,26 +27,30 @@ interface User {
 const platforms: Array<keyof Handles> = ['github', 'linkedin', 'instagram', 'facebook'];
 
 const ProfilePage: React.FC = () => {
-	const [user, setUser] = useState<User | null>(null);
+	const { user, isLoading } = useUser();
+
+	if (isLoading) return;
+	if (!user) redirect('/api/auth/login');
+	const [student, setstudent] = useState<Student | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [editMode, setEditMode] = useState<boolean>(false);
 	const [updatedHandles, setUpdatedHandles] = useState<Handles | null>(null);
 
 	useEffect(() => {
-		const fetchUserData = async () => {
+		const fetchStudentData = async () => {
 			try {
-				const data: User = await get('/client/students/nigga123');
-				setUser(data);
+				const data: Student = await get('/client/students/nigga123');
+				setstudent(data);
 				setUpdatedHandles(data.handles);
 			} catch (error: any) {
-				setError(error.message || 'Failed to fetch user data');
+				setError(error.message || 'Failed to fetch student data');
 			} finally {
 				setLoading(false);
 			}
 		};
 
-		fetchUserData();
+		fetchStudentData();
 	}, []);
 
 	const handleEditToggle = () => {
@@ -57,13 +63,13 @@ const ProfilePage: React.FC = () => {
 	};
 
 	const saveLinks = async () => {
-		if (updatedHandles && user) {
+		if (updatedHandles && student) {
 			try {
-				await patch(`/client/students/${user.id}`, updatedHandles, {
+				await patch(`/client/students/${student.id}`, updatedHandles, {
 					json: false
 				});
 				console.log('Done');
-				setUser({ ...user, handles: updatedHandles });
+				setstudent({ ...student, handles: updatedHandles });
 			} catch (error: any) {
 				setError(error.message || 'Failed to save links');
 			}
@@ -77,20 +83,20 @@ const ProfilePage: React.FC = () => {
 			<div className="bg-gray-900 shadow-md rounded-lg p-6">
 				<div className="flex items-center space-x-4">
 					<Avatar className="w-24 h-24">
-						{user?.picture ? (
-							<AvatarImage src={user.picture} alt={user.name} />
+						{student?.picture ? (
+							<AvatarImage src={student.picture} alt={student.name} />
 						) : (
 							<AvatarFallback className="bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500">
-								{user?.name ? user.name[0] : 'N/A'}
+								{student?.name ? student.name[0] : 'N/A'}
 							</AvatarFallback>
 						)}
 					</Avatar>
 
 					<div>
-						<h1 className="text-3xl font-semibold mb-3">{user?.name || 'User Name'}</h1>
-						<p className="text-blue-200">{user?.email || 'user@example.com'}</p>
-						<p className="text-blue-200">Department: {user?.department || 'N/A'}</p>
-						<p className="text-blue-200">Batch: {user?.batch || 'N/A'}</p>
+						<h1 className="text-3xl font-semibold mb-3">{student?.name || 'student Name'}</h1>
+						<p className="text-blue-200">{student?.email || 'student@example.com'}</p>
+						<p className="text-blue-200">Department: {student?.department || 'N/A'}</p>
+						<p className="text-blue-200">Batch: {student?.batch || 'N/A'}</p>
 					</div>
 				</div>
 			</div>
@@ -122,9 +128,9 @@ const ProfilePage: React.FC = () => {
 					</div>
 				) : (
 					<div className="mt-4 flex-col space-y-4">
-						{user?.handles.github && (
+						{student?.handles.github && (
 							<Link
-								href={user.handles.github}
+								href={student.handles.github}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="max-w-fit flex space-x-2 text-blue-300"
@@ -133,9 +139,9 @@ const ProfilePage: React.FC = () => {
 								<h3>GitHub</h3>
 							</Link>
 						)}
-						{user?.handles.linkedin && (
+						{student?.handles.linkedin && (
 							<Link
-								href={user.handles.linkedin}
+								href={student.handles.linkedin}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="max-w-fit flex space-x-2 text-blue-500"
@@ -144,9 +150,9 @@ const ProfilePage: React.FC = () => {
 								<h3>LinkedIn</h3>
 							</Link>
 						)}
-						{user?.handles.instagram && (
+						{student?.handles.instagram && (
 							<Link
-								href={user.handles.instagram}
+								href={student.handles.instagram}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="max-w-fit flex space-x-2 text-pink-500"
@@ -155,9 +161,9 @@ const ProfilePage: React.FC = () => {
 								<h3>Instagram</h3>
 							</Link>
 						)}
-						{user?.handles.facebook && (
+						{student?.handles.facebook && (
 							<Link
-								href={user.handles.facebook}
+								href={student.handles.facebook}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="max-w-fit flex space-x-2 text-blue-600"

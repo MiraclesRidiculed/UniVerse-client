@@ -1,8 +1,10 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { ReactNode } from 'react';
 import localFont from 'next/font/local';
 import Taskbar from '@/components/taskbar';
+import { UserProvider } from '@auth0/nextjs-auth0/client';
 
 const mono = localFont({
 	src: 'mono.woff2',
@@ -24,10 +26,12 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
+		<UserProvider>
 			<body className={mono.className + ' bg-gray-950 text-blue-400'}>
-				{children}
-				<Taskbar />
+			{children}
+			<Taskbar />
 			</body>
+		</UserProvider>
 		</html>
 	);
 }
