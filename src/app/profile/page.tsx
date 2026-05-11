@@ -1,182 +1,240 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { FaGithub, FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Link from 'next/link';
-import { get, patch } from '@/lib/RestHandler';
-import { useUser } from '@auth0/nextjs-auth0/client';
-import { redirect } from 'next/navigation';
 
-interface Handles {
+import { useEffect, useState } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+	communities,
+	getCampus,
+	posts,
+	resourcesForStudent,
+	StudentRecord,
+	students,
+} from '@/lib/schema-demo';
+import { PageShell, SchemaChip, SectionPanel, StatCard } from '@/components/schema-shell';
+
+interface DraftHandles {
 	instagram: string;
 	github: string;
-	facebook: string;
 	linkedin: string;
 }
 
-interface Student {
-	picture: string;
-	id: string;
-	name: string;
-	email: string;
-	department: string;
-	batch: number;
-	handles: Handles;
-}
-
-const platforms: Array<keyof Handles> = ['github', 'linkedin', 'instagram', 'facebook'];
-
-const ProfilePage: React.FC = () => {
+export default function ProfilePage() {
 	const { user, isLoading } = useUser();
-
-	if (isLoading) return;
-	if (!user) redirect('/api/auth/login');
-	const [student, setstudent] = useState<Student | null>(null);
-	const [loading, setLoading] = useState<boolean>(true);
-	const [error, setError] = useState<string | null>(null);
-	const [editMode, setEditMode] = useState<boolean>(false);
-	const [updatedHandles, setUpdatedHandles] = useState<Handles | null>(null);
+	const [profileStudent, setProfileStudent] = useState<StudentRecord | null>(null);
+	const [editMode, setEditMode] = useState(false);
+	const [draftHandles, setDraftHandles] = useState<DraftHandles>({
+		instagram: '',
+		github: '',
+		linkedin: '',
+	});
 
 	useEffect(() => {
-		const fetchStudentData = async () => {
-			try {
-				const data: Student = await get('/client/students/nigga123');
-				setstudent(data);
-				setUpdatedHandles(data.handles);
-			} catch (error: any) {
-				setError(error.message || 'Failed to fetch student data');
-			} finally {
-				setLoading(false);
-			}
-		};
+		if (isLoading) return;
 
-		fetchStudentData();
-	}, []);
+		const matchedStudent =
+			students.find((student) => student.email.toLowerCase() === user?.email?.toLowerCase()) ??
+			students[0];
 
-	const handleEditToggle = () => {
-		setEditMode(!editMode);
-	};
+		setProfileStudent(matchedStudent);
+		setDraftHandles({
+			instagram: matchedStudent.instagram,
+			github: matchedStudent.github,
+			linkedin: matchedStudent.linkedin,
+		});
+	}, [isLoading, user?.email]);
 
-	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const { name, value } = e.target;
-		setUpdatedHandles(prev => prev ? { ...prev, [name]: value } : null);
-	};
+	if (!profileStudent) {
+		return (
+			<PageShell
+				eyebrow="Profile schema"
+				title="Preparing student profile surface"
+				description="Loading the schema-shaped student preview."
+			>
+				<div className="surface-panel p-6 text-sm text-slate-300">Loading profile preview...</div>
+			</PageShell>
+		);
+	}
 
-	const saveLinks = async () => {
-		if (updatedHandles && student) {
-			try {
-				await patch(`/client/students/${student.id}`, updatedHandles, {
-					json: false
-				});
-				console.log('Done');
-				setstudent({ ...student, handles: updatedHandles });
-			} catch (error: any) {
-				setError(error.message || 'Failed to save links');
-			}
-		}
+	const campus = getCampus(profileStudent.campusId);
+	const joinedCommunities = communities.filter(
+		(community) => community.campusId === profileStudent.campusId,
+	);
+	const studentResources = resourcesForStudent(profileStudent.studentId);
+	const studentPosts = posts.filter((post) => post.studentId === profileStudent.studentId);
+	const previewMode = !user || user.email?.toLowerCase() !== profileStudent.email.toLowerCase();
 
+	const savePreviewHandles = () => {
+		setProfileStudent({
+			...profileStudent,
+			instagram: draftHandles.instagram,
+			github: draftHandles.github,
+			linkedin: draftHandles.linkedin,
+		});
 		setEditMode(false);
 	};
 
 	return (
-		<div className="container mx-auto px-4 py-8">
-			<div className="bg-gray-900 shadow-md rounded-lg p-6">
-				<div className="flex items-center space-x-4">
-					<Avatar className="w-24 h-24">
-						{student?.picture ? (
-							<AvatarImage src={student.picture} alt={student.name} />
-						) : (
-							<AvatarFallback className="bg-gray-200 flex items-center justify-center text-2xl font-bold text-gray-500">
-								{student?.name ? student.name[0] : 'N/A'}
-							</AvatarFallback>
-						)}
-					</Avatar>
-
-					<div>
-						<h1 className="text-3xl font-semibold mb-3">{student?.name || 'student Name'}</h1>
-						<p className="text-blue-200">{student?.email || 'student@example.com'}</p>
-						<p className="text-blue-200">Department: {student?.department || 'N/A'}</p>
-						<p className="text-blue-200">Batch: {student?.batch || 'N/A'}</p>
-					</div>
+		<PageShell
+			eyebrow="Student schema"
+			title="Profile UI now aligns with the `student` table."
+			description="The profile surface uses the same fields the MySQL schema expects: student ID, campus ID, department, batch, and direct social links."
+			actions={[
+				{ href: '/search', label: 'Find more students' },
+				{ href: '/resources', label: 'Open resources' },
+			]}
+		>
+			{previewMode ? (
+				<div className="surface-panel border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100/90">
+					Preview mode is active. This page is showing a schema-matched sample student until a signed-in user maps directly to a backend record.
 				</div>
+			) : null}
+
+			<div className="grid gap-4 md:grid-cols-3">
+				<StatCard label="student id" value={profileStudent.studentId} hint="Primary key from the `student` table." />
+				<StatCard label="campus id" value={profileStudent.campusId} hint="Foreign key back to the `campus` table." />
+				<StatCard label="activity" value={String(studentResources.length + studentPosts.length).padStart(2, '0')} hint="Combined resources and posts authored by this student." />
 			</div>
 
-			<div className="bg-gray-900 shadow-md rounded-lg p-6 mt-5">
-				<div className="flex justify-between items-center">
-					<h2 className="text-2xl font-semibold">Connections</h2>
-					<button onClick={handleEditToggle} className="text-sm text-blue-200">
-						{editMode ? 'Cancel' : 'Edit'}
-					</button>
-				</div>
-				{editMode ? (
-					<div className="mt-4 space-y-4">
-						{platforms.map((platform) => (
-							<div key={platform} className="flex items-center space-x-2">
-								<label className="text-white capitalize">{platform}</label>
-								<input
-									type="text"
-									name={platform}
-									value={updatedHandles?.[platform] || ''}
-									onChange={handleInputChange}
-									className="w-full bg-gray-200 rounded px-3 py-1 text-gray-900"
-								/>
+			<div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+				<SectionPanel
+					kicker="Identity"
+					title="Primary student record"
+					description="This top card makes the important schema fields easy to scan."
+				>
+					<div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+						<Avatar className="h-24 w-24 border border-white/10 bg-teal-300/10">
+							<AvatarFallback className="bg-transparent text-3xl font-semibold text-teal-100">
+								{profileStudent.name
+									.split(' ')
+									.map((part) => part[0])
+									.join('')
+									.slice(0, 2)}
+							</AvatarFallback>
+						</Avatar>
+						<div className="space-y-2">
+							<h2 className="text-3xl font-semibold text-white">{profileStudent.name}</h2>
+							<p className="text-sm text-slate-300">{profileStudent.email}</p>
+							<div className="flex flex-wrap gap-2">
+								<SchemaChip>{profileStudent.department}</SchemaChip>
+								<SchemaChip>Batch {profileStudent.batch}</SchemaChip>
+								{campus ? <SchemaChip>{campus.campusName}</SchemaChip> : null}
 							</div>
-						))}
-						<button onClick={saveLinks} className="bg-blue-500 text-white py-1 px-4 rounded">
-							Save
+						</div>
+					</div>
+				</SectionPanel>
+
+				<SectionPanel
+					kicker="Connected fields"
+					title="Social handles from the current schema"
+					description="These are kept local for now because the UI has moved ahead of the MySQL API work."
+				>
+					<div className="flex items-center justify-between gap-3">
+						<p className="text-sm text-slate-300">Edit the schema-backed social columns in place.</p>
+						<button
+							type="button"
+							onClick={() => setEditMode((current) => !current)}
+							className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:border-teal-300/30 hover:bg-teal-300/10"
+						>
+							{editMode ? 'Cancel' : 'Edit links'}
 						</button>
 					</div>
-				) : (
-					<div className="mt-4 flex-col space-y-4">
-						{student?.handles.github && (
-							<Link
-								href={student.handles.github}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-blue-300"
+					<div className="mt-5 space-y-4">
+						{(['instagram', 'github', 'linkedin'] as Array<keyof DraftHandles>).map((platform) => (
+							<div key={platform} className="rounded-[1.15rem] border border-white/10 bg-white/5 p-4">
+								<p className="text-xs uppercase tracking-[0.18em] text-slate-400">{platform}</p>
+								{editMode ? (
+									<input
+										type="text"
+										value={draftHandles[platform]}
+										onChange={(event) =>
+											setDraftHandles({
+												...draftHandles,
+												[platform]: event.target.value,
+											})
+										}
+										className="mt-3 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-500 focus:border-teal-300/45"
+									/>
+								) : (
+									<p className="mt-3 break-all text-sm text-teal-200/78">
+										{profileStudent[platform]}
+									</p>
+								)}
+							</div>
+						))}
+						{editMode ? (
+							<button
+								type="button"
+								onClick={savePreviewHandles}
+								className="rounded-full bg-teal-300 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-teal-200"
 							>
-								<FaGithub className="w-6 h-6" />
-								<h3>GitHub</h3>
-							</Link>
-						)}
-						{student?.handles.linkedin && (
-							<Link
-								href={student.handles.linkedin}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-blue-500"
-							>
-								<FaLinkedin className="w-6 h-6" />
-								<h3>LinkedIn</h3>
-							</Link>
-						)}
-						{student?.handles.instagram && (
-							<Link
-								href={student.handles.instagram}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-pink-500"
-							>
-								<FaInstagram className="w-6 h-6" />
-								<h3>Instagram</h3>
-							</Link>
-						)}
-						{student?.handles.facebook && (
-							<Link
-								href={student.handles.facebook}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="max-w-fit flex space-x-2 text-blue-600"
-							>
-								<FaFacebook className="w-6 h-6" />
-								<h3>Facebook</h3>
-							</Link>
-						)}
+								Save local preview
+							</button>
+						) : null}
 					</div>
-				)}
+				</SectionPanel>
 			</div>
-		</div>
-	);
-};
 
-export default ProfilePage;
+			<div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+				<SectionPanel
+					kicker="Community footprint"
+					title="Communities connected through campus membership"
+					description="The current schema does not define a student-community join table yet, so this view uses campus alignment as the bridge."
+				>
+					<div className="grid gap-4">
+						{joinedCommunities.map((community) => (
+							<div
+								key={community.communityId}
+								className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4"
+							>
+								<div className="flex flex-wrap gap-2">
+									<SchemaChip>{community.communityId}</SchemaChip>
+									<SchemaChip>{profileStudent.campusId}</SchemaChip>
+								</div>
+								<h3 className="mt-3 text-lg font-semibold text-white">{community.name}</h3>
+								<p className="mt-2 text-sm leading-6 text-slate-300">{community.description}</p>
+							</div>
+						))}
+					</div>
+				</SectionPanel>
+
+				<SectionPanel
+					kicker="Output"
+					title="Resources and posts authored by this student"
+					description="These cards tie the profile back to the `resource` and `post` tables."
+				>
+					<div className="space-y-4">
+						{studentResources.map((resource) => (
+							<div
+								key={resource.resourceId}
+								className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4"
+							>
+								<div className="flex flex-wrap gap-2">
+									<SchemaChip>{resource.resourceId}</SchemaChip>
+									<SchemaChip>{resource.communityId}</SchemaChip>
+								</div>
+								<h3 className="mt-3 text-lg font-semibold text-white">{resource.title}</h3>
+								<p className="mt-2 text-sm text-slate-300">{resource.createdAt}</p>
+							</div>
+						))}
+						{studentPosts.map((post) => (
+							<div
+								key={post.postId}
+								className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4"
+							>
+								<div className="flex flex-wrap gap-2">
+									<SchemaChip>{post.postId}</SchemaChip>
+									<SchemaChip>{post.communityId}</SchemaChip>
+								</div>
+								<p className="mt-3 text-sm leading-7 text-white">{post.content}</p>
+								<p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">
+									{post.createdAt}
+								</p>
+							</div>
+						))}
+					</div>
+				</SectionPanel>
+			</div>
+		</PageShell>
+	);
+}

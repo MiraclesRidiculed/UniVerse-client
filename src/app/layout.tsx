@@ -26,12 +26,12 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-		<UserProvider>
-			<body className={mono.className + ' bg-gray-950 text-blue-400'}>
-			{children}
-			<Taskbar />
+			<body className={`${mono.className} bg-slate-950 text-slate-100 antialiased`}>
+				<UserProvider>
+					{children}
+					<Taskbar />
+				</UserProvider>
 			</body>
-		</UserProvider>
 		</html>
 	);
 }
