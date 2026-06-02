@@ -85,23 +85,35 @@
 	body {
 		@apply bg-background text-foreground;
 		min-height: 100vh;
-		background:
-			radial-gradient(circle at top left, rgba(45, 212, 191, 0.16), transparent 24%),
-			radial-gradient(circle at top right, rgba(251, 191, 36, 0.14), transparent 22%),
-			linear-gradient(180deg, #0b1220 0%, #050a13 50%, #03060f 100%);
+		background: #0f172a;
+		font-family:
+			Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+			sans-serif;
 	}
 }
 
 @layer components {
 	.surface-panel {
-		@apply rounded-[1.75rem] border border-white/10 bg-slate-950/70 shadow-[0_24px_80px_-36px_rgba(45,212,191,0.45)] backdrop-blur-xl;
+		@apply rounded-lg border border-slate-800 bg-slate-900 shadow-sm;
 	}
 
 	.surface-eyebrow {
-		@apply text-[0.68rem] uppercase tracking-[0.3em] text-teal-200;
+		@apply text-xs font-semibold uppercase text-teal-200;
 	}
 
 	.surface-chip {
-		@apply rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.68rem] uppercase tracking-[0.16em] text-slate-200;
+		@apply rounded-md border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-medium text-slate-200;
+	}
+
+	.form-input {
+		@apply w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-teal-300;
+	}
+
+	.primary-button {
+		@apply inline-flex items-center justify-center gap-2 rounded-md bg-teal-300 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-teal-200 disabled:cursor-not-allowed disabled:opacity-50;
+	}
+
+	.secondary-button {
+		@apply inline-flex items-center justify-center gap-2 rounded-md border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50;
 	}
 }

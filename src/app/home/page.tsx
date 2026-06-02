@@ -1,161 +1,160 @@
-import {
-	admins,
-	campuses,
-	communities,
-	getCampus,
-	getCommunity,
-	getStudent,
-	posts,
-	resources,
-	schemaTables,
-	students,
-} from '@/lib/schema-demo';
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import { Edit3, Trash2 } from 'lucide-react';
 import { PageShell, SchemaChip, SectionPanel, StatCard } from '@/components/schema-shell';
+import { useAuth } from '@/components/auth-provider';
+import { ProtectedRoute } from '@/components/protected-route';
+import { request, userMessage, type Community, type Post, type Summary } from '@/lib/api';
 
 export default function HomePage() {
+	const { student, token } = useAuth();
+	const [summary, setSummary] = useState<Summary | null>(null);
+	const [communities, setCommunities] = useState<Community[]>([]);
+	const [posts, setPosts] = useState<Post[]>([]);
+	const [editing, setEditing] = useState('');
+	const [editText, setEditText] = useState('');
+	const [error, setError] = useState('');
+	const [loading, setLoading] = useState(true);
+
+	const load = async () => {
+		setLoading(true);
+		const [nextSummary, nextCommunities, nextPosts] = await Promise.all([
+			request<Summary>('/summary', { token }),
+			request<Community[]>('/communities', { token }),
+			request<Post[]>('/posts', { token }),
+		]);
+		setSummary(nextSummary);
+		setCommunities(nextCommunities);
+		setPosts(nextPosts);
+		setLoading(false);
+	};
+
+	useEffect(() => {
+		if (!token) return;
+		load()
+			.catch((caught) => setError(userMessage(caught)))
+			.finally(() => setLoading(false));
+	}, [token]);
+
+	const createPost = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const form = new FormData(event.currentTarget);
+		try {
+			await request<Post>('/posts', {
+				method: 'POST',
+				token,
+				body: JSON.stringify({
+					communityId: form.get('communityId'),
+					content: form.get('content'),
+				}),
+			});
+			event.currentTarget.reset();
+			await load();
+		} catch (caught: any) {
+			setError(userMessage(caught));
+		}
+	};
+
+	const savePost = async (postId: string) => {
+		try {
+			await request<Post>(`/posts/${postId}`, {
+				method: 'PATCH',
+				token,
+				body: JSON.stringify({ content: editText }),
+			});
+			setEditing('');
+			await load();
+		} catch (caught) {
+			setError(userMessage(caught));
+		}
+	};
+
+	const deletePost = async (postId: string) => {
+		try {
+			await request(`/posts/${postId}`, { method: 'DELETE', token });
+			await load();
+		} catch (caught) {
+			setError(userMessage(caught));
+		}
+	};
+
 	return (
+		<ProtectedRoute>
 		<PageShell
-			eyebrow="Schema dashboard"
-			title="The network now reads like the database it sits on."
-			description="This dashboard makes the current SQL model visible in the interface, so teams can reason about entities, flows, and gaps before wiring the MySQL backend."
-			actions={[
-				{ href: '/campus', label: 'Review campuses' },
-				{ href: '/resources', label: 'Open library' },
-			]}
+			eyebrow="Dashboard"
+			title="Campus activity, backed by MySQL records."
+			description="Posts, communities, students, and resources are loaded through the Express API instead of static preview data."
+			actions={[{ href: '/resources', label: 'Resources' }, { href: '/campus', label: 'Communities' }]}
 		>
+			{error ? <div className="surface-panel border-red-300/20 p-4 text-sm text-red-100">{error}</div> : null}
+			{loading ? <div className="surface-panel p-4 text-sm text-slate-300">Loading dashboard...</div> : null}
 			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-				<StatCard label="campuses" value={String(campuses.length).padStart(2, '0')} hint="Top-level locations for every student, admin, and community." />
-				<StatCard label="students" value={String(students.length).padStart(2, '0')} hint="Directory records currently powering the profile and search surfaces." />
-				<StatCard label="admins" value={String(admins.length).padStart(2, '0')} hint="Campus operators responsible for each node in the system." />
-				<StatCard label="communities" value={String(communities.length).padStart(2, '0')} hint="Groups where posts and resources start to layer on top." />
+				<StatCard label="students" value={String(summary?.counts.students ?? 0)} hint="Registered student profiles." />
+				<StatCard label="communities" value={String(summary?.counts.communities ?? 0)} hint="Campus groups available to join." />
+				<StatCard label="posts" value={String(summary?.counts.posts ?? 0)} hint="Discussion feed records." />
+				<StatCard label="resources" value={String(summary?.counts.resources ?? 0)} hint="Uploaded academic files." />
 			</div>
 
-			<div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-				<SectionPanel
-					kicker="Recent activity"
-					title="Latest post and resource movement"
-					description="The feed below mirrors the `post` and `resource` tables, but presents them as a shared product narrative."
-				>
-					<div className="space-y-4">
-						{posts.map((post) => {
-							const author = getStudent(post.studentId);
-							const community = getCommunity(post.communityId);
-
-							return (
-								<div
-									key={post.postId}
-									className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4"
-								>
-									<div className="flex flex-wrap items-center gap-2">
-										<SchemaChip>{post.postId}</SchemaChip>
-										{community ? <SchemaChip>{community.name}</SchemaChip> : null}
-										{author ? <SchemaChip>{author.department}</SchemaChip> : null}
-									</div>
-									<p className="mt-3 text-base leading-7 text-white">{post.content}</p>
-									<p className="mt-4 text-sm text-slate-400">
-										{author?.name ?? 'Unknown student'} • {post.createdAt}
-									</p>
-								</div>
-							);
-						})}
-					</div>
+			<div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+				<SectionPanel kicker="Create" title="Post to a community">
+					<form onSubmit={createPost} className="space-y-4">
+						<select name="communityId" required className="form-input">
+							<option value="">Choose community</option>
+							{communities.map((community) => (
+								<option key={community.communityId} value={community.communityId}>
+									{community.name}
+								</option>
+							))}
+						</select>
+						<textarea name="content" required rows={6} placeholder="Share an update..." className="form-input resize-none" />
+						<button disabled={!student} className="primary-button">Create post</button>
+					</form>
 				</SectionPanel>
 
-				<SectionPanel
-					kicker="Entity coverage"
-					title="Key columns in play"
-					description="The schema draft already shapes the page system, even before the MySQL API is fully wired up."
-				>
+				<SectionPanel kicker="Feed" title="Latest posts">
 					<div className="space-y-4">
-						{schemaTables.map((table) => (
-							<div key={table.table} className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4">
-								<div className="flex flex-wrap items-center justify-between gap-2">
-									<h3 className="text-lg font-semibold text-white">{table.table}</h3>
-									<SchemaChip>{table.columns.length} columns</SchemaChip>
-								</div>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{table.columns.map((column) => (
-										<SchemaChip key={column}>{column}</SchemaChip>
-									))}
-								</div>
+						{!loading && posts.length === 0 ? (
+							<div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+								No posts yet. Start the first community update.
 							</div>
-						))}
-					</div>
-				</SectionPanel>
-			</div>
-
-			<div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-				<SectionPanel
-					kicker="Campus loadout"
-					title="Each campus acts as a parent node"
-					description="Students, admins, and communities all hang from the `campus` table, so the UI makes that relationship explicit."
-				>
-					<div className="grid gap-4 sm:grid-cols-2">
-						{campuses.map((campus) => {
-							const campusStudents = students.filter((student) => student.campusId === campus.campusId);
-							const campusCommunities = communities.filter((community) => community.campusId === campus.campusId);
-							const campusAdmins = admins.filter((admin) => admin.campusId === campus.campusId);
-
+						) : null}
+						{posts.map((post) => {
+							const owned = post.studentId === student?.studentId;
 							return (
-								<div
-									key={campus.campusId}
-									className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4"
-								>
-									<p className="surface-eyebrow">{campus.campusId}</p>
-									<h3 className="mt-2 text-xl font-semibold text-white">{campus.campusName}</h3>
-									<p className="mt-2 text-sm text-slate-300">{campus.location}</p>
-									<div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-										<div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-											<p className="text-slate-400">students</p>
-											<p className="mt-1 text-lg text-white">{campusStudents.length}</p>
+								<article key={post.postId} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+									<div className="flex flex-wrap items-center justify-between gap-3">
+										<div className="flex flex-wrap gap-2">
+											<SchemaChip>{post.communityName}</SchemaChip>
+											<SchemaChip>{post.studentDepartment}</SchemaChip>
 										</div>
-										<div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-											<p className="text-slate-400">admins</p>
-											<p className="mt-1 text-lg text-white">{campusAdmins.length}</p>
-										</div>
-										<div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-											<p className="text-slate-400">groups</p>
-											<p className="mt-1 text-lg text-white">{campusCommunities.length}</p>
-										</div>
+										{owned ? (
+											<div className="flex gap-2">
+												<button type="button" onClick={() => { setEditing(post.postId); setEditText(post.content); }} className="secondary-button px-3" aria-label="Edit post">
+													<Edit3 className="h-4 w-4" />
+												</button>
+												<button type="button" onClick={() => deletePost(post.postId)} className="secondary-button px-3" aria-label="Delete post">
+													<Trash2 className="h-4 w-4" />
+												</button>
+											</div>
+										) : null}
 									</div>
-								</div>
-							);
-						})}
-					</div>
-				</SectionPanel>
-
-				<SectionPanel
-					kicker="Resource trail"
-					title="Linked student output"
-					description="Resources are shown alongside their author and community to mirror the foreign keys in the schema."
-				>
-					<div className="space-y-4">
-						{resources.map((resource) => {
-							const author = getStudent(resource.studentId);
-							const community = getCommunity(resource.communityId);
-							const campus = author ? getCampus(author.campusId) : undefined;
-
-							return (
-								<div
-									key={resource.resourceId}
-									className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4"
-								>
-									<div className="flex flex-wrap gap-2">
-										<SchemaChip>{resource.resourceId}</SchemaChip>
-										{community ? <SchemaChip>{community.name}</SchemaChip> : null}
-										{campus ? <SchemaChip>{campus.campusName}</SchemaChip> : null}
-									</div>
-									<h3 className="mt-3 text-lg font-semibold text-white">{resource.title}</h3>
-									<p className="mt-2 text-sm text-slate-300">
-										Published by {author?.name ?? 'Unknown student'} • {resource.createdAt}
-									</p>
-									<p className="mt-3 break-all text-sm text-teal-200/78">{resource.fileUrl}</p>
-								</div>
+									{editing === post.postId ? (
+										<div className="mt-4 space-y-3">
+											<textarea value={editText} onChange={(event) => setEditText(event.target.value)} rows={4} className="form-input resize-none" />
+											<button type="button" onClick={() => savePost(post.postId)} className="primary-button">Save changes</button>
+										</div>
+									) : (
+										<p className="mt-4 text-sm leading-7 text-white">{post.content}</p>
+									)}
+									<p className="mt-4 text-xs text-slate-400">{post.studentName} · {post.createdAt}</p>
+								</article>
 							);
 						})}
 					</div>
 				</SectionPanel>
 			</div>
 		</PageShell>
+		</ProtectedRoute>
 	);
 }
