@@ -36,13 +36,12 @@ export function PageShell({
 	children,
 }: PageShellProps) {
 	return (
-		<main className="mx-auto min-h-screen max-w-6xl px-4 pb-32 pt-6 sm:px-6 lg:px-8">
-			<section className="surface-panel relative overflow-hidden p-6 sm:p-8">
-				<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(45,212,191,0.2),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.16),transparent_28%)]" />
-				<div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+		<main className="mx-auto min-h-screen max-w-6xl px-4 pb-12 pt-24 sm:px-6 lg:px-8">
+			<section className="surface-panel p-6 sm:p-8">
+				<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
 					<div className="max-w-3xl space-y-4">
 						<p className="surface-eyebrow">{eyebrow}</p>
-						<h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+						<h1 className="max-w-3xl text-3xl font-semibold text-white sm:text-4xl">
 							{title}
 						</h1>
 						<p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">

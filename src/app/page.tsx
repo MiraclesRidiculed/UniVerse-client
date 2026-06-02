@@ -1,86 +1,100 @@
-import Link from 'next/link';
-import { PageShell, SchemaChip, SectionPanel, StatCard } from '@/components/schema-shell';
-import {
-	campuses,
-	communities,
-	posts,
-	resources,
-	schemaTables,
-	students,
-} from '@/lib/schema-demo';
+'use client';
 
-export default function Home() {
+import { FormEvent, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth-provider';
+import { userMessage } from '@/lib/api';
+
+export default function LandingPage() {
+	const router = useRouter();
+	const { student, login, signup } = useAuth();
+	const [mode, setMode] = useState<'login' | 'signup'>('login');
+	const [error, setError] = useState('');
+	const [busy, setBusy] = useState(false);
+
+	useEffect(() => {
+		const nextPath = new URLSearchParams(window.location.search).get('next') || '/home';
+		if (student) router.push(nextPath);
+	}, [router, student]);
+
+	const submit = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		setBusy(true);
+		setError('');
+		const form = new FormData(event.currentTarget);
+		try {
+			if (mode === 'login') {
+				await login(String(form.get('email')), String(form.get('password')));
+			} else {
+				await signup({
+					name: String(form.get('name')),
+					email: String(form.get('email')),
+					password: String(form.get('password')),
+				});
+			}
+			const nextPath = new URLSearchParams(window.location.search).get('next') || '/home';
+			router.push(nextPath);
+		} catch (caught: any) {
+			setError(userMessage(caught));
+		} finally {
+			setBusy(false);
+		}
+	};
+
 	return (
-		<PageShell
-			eyebrow="UniVerse schema preview"
-			title="A front end shaped directly around the current relational model."
-			description="This landing layer mirrors the SQL draft already living in the repo, so design, client flows, and the backend migration can move in the same direction."
-			actions={[
-				{ href: '/home', label: 'Open dashboard' },
-				{ href: '/api/auth/login', label: 'Sign in with Auth0' },
-			]}
-		>
-			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-				<StatCard label="campus" value={String(campuses.length).padStart(2, '0')} hint="Physical nodes anchored by `campus_id`." />
-				<StatCard label="student" value={String(students.length).padStart(2, '0')} hint="Profiles connected through `campus_id`." />
-				<StatCard label="community" value={String(communities.length).padStart(2, '0')} hint="Discussion spaces for each campus." />
-				<StatCard label="resource + post" value={String(resources.length + posts.length).padStart(2, '0')} hint="Content surfaces ready for richer endpoints." />
-			</div>
-
-			<div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-				<SectionPanel
-					kicker="Available entities"
-					title="The app shell now maps to the schema instead of placeholders."
-					description="Each major route now lines up with the tables already defined in `universe_mysql_schema.sql`, including the relationships between students, communities, resources, and posts."
-				>
-					<div className="grid gap-4">
-						{schemaTables.map((table) => (
-							<div key={table.table} className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
-								<div className="flex flex-wrap items-center justify-between gap-3">
-									<h2 className="text-lg font-semibold text-white">{table.table}</h2>
-									<div className="flex flex-wrap gap-2">
-										{table.columns.slice(0, 4).map((column) => (
-											<SchemaChip key={column}>{column}</SchemaChip>
-										))}
-									</div>
-								</div>
-								<p className="mt-3 text-sm leading-6 text-slate-300">{table.description}</p>
-							</div>
-						))}
-					</div>
-				</SectionPanel>
-
-				<SectionPanel
-					kicker="Routing"
-					title="Where each route fits"
-					description="The UI is now laid out like a schema-aware product surface instead of disconnected placeholders."
-				>
-					<div className="space-y-3">
-						{[
-							{ href: '/home', label: 'Home', copy: 'Overview cards, recent post activity, and table-level coverage.' },
-							{ href: '/campus', label: 'Campus', copy: 'Campus records, admins, student counts, and community distribution.' },
-							{ href: '/resources', label: 'Resources', copy: 'Resource library plus the latest post layer around each community.' },
-							{ href: '/search', label: 'Search', copy: 'Filter students, communities, and campuses using the shared schema data.' },
-							{ href: '/profile', label: 'Profile', copy: 'Student-level view aligned with the `student` table fields.' },
-						].map((route) => (
-							<Link
-								key={route.href}
-								href={route.href}
-								className="block rounded-[1.25rem] border border-white/10 bg-white/5 p-4 transition hover:border-teal-300/30 hover:bg-teal-300/5"
-							>
-								<p className="text-sm uppercase tracking-[0.2em] text-teal-200/72">{route.label}</p>
-								<p className="mt-2 text-sm leading-6 text-slate-300">{route.copy}</p>
-							</Link>
-						))}
-					</div>
-					<div className="mt-6 rounded-[1.25rem] border border-amber-300/15 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100/90">
-						<p className="font-medium text-white">Current assumption</p>
-						<p className="mt-2">
-							These screens use a shared schema-shaped dataset for now, because the client has moved ahead of the backend migration from MongoDB to MySQL.
-						</p>
-					</div>
-				</SectionPanel>
-			</div>
-		</PageShell>
+		<main className="flex min-h-screen items-center justify-center px-4 py-10">
+			<section className="surface-panel w-full max-w-md p-6 sm:p-7">
+				<div className="mb-7">
+					<p className="text-sm font-semibold text-teal-200">UniVerse</p>
+					<p className="mt-1 text-sm text-slate-400">Student campus platform</p>
+				</div>
+				<div className="mb-6">
+					<h2 className="text-2xl font-semibold text-white">
+						{mode === 'login' ? 'Welcome back' : 'Create your account'}
+					</h2>
+					<p className="mt-2 text-sm leading-6 text-slate-300">
+						{mode === 'login'
+							? 'Use your UniVerse email and password to open your campus workspace.'
+							: 'Start with the basics. Academic details can be added from profile settings after login.'}
+					</p>
+				</div>
+				<div className="mb-6 flex rounded-md border border-white/10 bg-white/[0.03] p-1">
+					{(['login', 'signup'] as const).map((nextMode) => (
+						<button
+							key={nextMode}
+							type="button"
+							onClick={() => setMode(nextMode)}
+							className={`flex-1 rounded px-3 py-2 text-sm capitalize transition ${
+								mode === nextMode
+									? 'bg-teal-300 text-slate-950'
+									: 'text-slate-300 hover:bg-white/5'
+							}`}
+						>
+							{nextMode}
+						</button>
+					))}
+				</div>
+				<form onSubmit={submit} className="space-y-5">
+					{mode === 'signup' ? (
+						<label className="block space-y-2">
+							<span className="text-sm font-medium text-slate-300">Name</span>
+							<input name="name" required placeholder="Full name" className="form-input" />
+						</label>
+					) : null}
+					<label className="block space-y-2">
+						<span className="text-sm font-medium text-slate-300">Email</span>
+						<input name="email" required type="email" placeholder="you@universe.edu" className="form-input" />
+					</label>
+					<label className="block space-y-2">
+						<span className="text-sm font-medium text-slate-300">Password</span>
+						<input name="password" required type="password" minLength={8} placeholder="At least 8 characters" className="form-input" />
+					</label>
+					{error ? <p className="rounded-md border border-red-300/20 bg-red-500/10 p-3 text-sm text-red-100">{error}</p> : null}
+					<button disabled={busy} className="primary-button w-full">
+						{busy ? 'Working...' : mode === 'login' ? 'Login' : 'Create account'}
+					</button>
+				</form>
+			</section>
+		</main>
 	);
 }

@@ -1,146 +1,149 @@
-import {
-	adminsForCampus,
-	campuses,
-	communitiesForCampus,
-	studentsForCampus,
-} from '@/lib/schema-demo';
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import { Users } from 'lucide-react';
 import { PageShell, SchemaChip, SectionPanel, StatCard } from '@/components/schema-shell';
+import { useAuth } from '@/components/auth-provider';
+import { LoginPrompt, ProtectedRoute } from '@/components/protected-route';
+import { request, userMessage, type Campus, type Community, type Student } from '@/lib/api';
 
 export default function CampusPage() {
+	const { token, student } = useAuth();
+	const [campuses, setCampuses] = useState<Campus[]>([]);
+	const [communities, setCommunities] = useState<Community[]>([]);
+	const [members, setMembers] = useState<Record<string, Student[]>>({});
+	const [error, setError] = useState('');
+	const [loading, setLoading] = useState(true);
+
+	const load = async () => {
+		setLoading(true);
+		const [nextCampuses, nextCommunities] = await Promise.all([
+			request<Campus[]>('/campuses'),
+			request<Community[]>('/communities', { token }),
+		]);
+		setCampuses(nextCampuses);
+		setCommunities(nextCommunities);
+		setLoading(false);
+	};
+
+	useEffect(() => {
+		if (!token) return;
+		load()
+			.catch((caught) => setError(userMessage(caught)))
+			.finally(() => setLoading(false));
+	}, [token]);
+
+	const create = async (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const form = new FormData(event.currentTarget);
+		try {
+			await request<Community>('/communities', {
+				method: 'POST',
+				token,
+				body: JSON.stringify(Object.fromEntries(form)),
+			});
+			event.currentTarget.reset();
+			await load();
+		} catch (caught: any) {
+			setError(userMessage(caught));
+		}
+	};
+
+	const join = async (communityId: string) => {
+		try {
+			await request<Community>(`/communities/${communityId}/join`, {
+				method: 'POST',
+				token,
+			});
+			await load();
+		} catch (caught) {
+			setError(userMessage(caught));
+		}
+	};
+
+	const showMembers = async (communityId: string) => {
+		try {
+			const data = await request<Student[]>(`/communities/${communityId}/members`);
+			setMembers((current) => ({ ...current, [communityId]: data }));
+		} catch (caught) {
+			setError(userMessage(caught));
+		}
+	};
+
 	return (
+		<ProtectedRoute>
 		<PageShell
-			eyebrow="Campus schema"
-			title="Campus nodes, operators, and membership in one place."
-			description="This route turns the parent-child relationships in the SQL draft into clear UI sections: each campus owns students, admins, and communities."
-			actions={[
-				{ href: '/search', label: 'Search records' },
-				{ href: '/profile', label: 'Student view' },
-			]}
+			eyebrow="Communities"
+			title="Create groups, join them, and inspect membership."
+			description="Community records stay attached to campuses, while membership is tracked through a dedicated join table."
+			actions={[{ href: '/home', label: 'Feed' }, { href: '/resources', label: 'Resources' }]}
 		>
+			{error ? <div className="surface-panel border-red-300/20 p-4 text-sm text-red-100">{error}</div> : null}
+			{loading ? <div className="surface-panel p-4 text-sm text-slate-300">Loading communities...</div> : null}
 			<div className="grid gap-4 md:grid-cols-3">
-				<StatCard label="campus records" value={String(campuses.length).padStart(2, '0')} hint="The three campus records currently anchor the sample network." />
-				<StatCard label="admins" value={String(campuses.reduce((total, campus) => total + adminsForCampus(campus.campusId).length, 0)).padStart(2, '0')} hint="Each campus has a dedicated operator in the current UI pass." />
-				<StatCard label="students" value={String(campuses.reduce((total, campus) => total + studentsForCampus(campus.campusId).length, 0)).padStart(2, '0')} hint="Student counts surface the same `campus_id` grouping used in SQL." />
+				<StatCard label="campuses" value={String(campuses.length)} hint="Campus parent records." />
+				<StatCard label="communities" value={String(communities.length)} hint="Groups across campuses." />
+				<StatCard label="signed in" value={student ? 'Yes' : 'No'} hint="Required to create or join." />
 			</div>
 
-			<SectionPanel
-				kicker="Campus cards"
-				title="Parent entities from the `campus` table"
-				description="Each card shows the direct descendants that would be retrieved through foreign-key joins once the MySQL backend is in place."
-			>
-				<div className="grid gap-5 lg:grid-cols-3">
-					{campuses.map((campus) => {
-						const campusAdmins = adminsForCampus(campus.campusId);
-						const campusStudents = studentsForCampus(campus.campusId);
-						const campusCommunities = communitiesForCampus(campus.campusId);
-
-						return (
-							<div
-								key={campus.campusId}
-								className="rounded-[1.45rem] border border-white/10 bg-white/5 p-5"
-							>
-								<div className="flex flex-wrap gap-2">
-									<SchemaChip>{campus.campusId}</SchemaChip>
-									<SchemaChip>{campus.location}</SchemaChip>
-								</div>
-								<h2 className="mt-4 text-2xl font-semibold text-white">{campus.campusName}</h2>
-								<div className="mt-5 grid grid-cols-3 gap-3">
-									<div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-										<p className="text-xs uppercase tracking-[0.2em] text-slate-400">admins</p>
-										<p className="mt-2 text-xl text-white">{campusAdmins.length}</p>
-									</div>
-									<div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-										<p className="text-xs uppercase tracking-[0.2em] text-slate-400">students</p>
-										<p className="mt-2 text-xl text-white">{campusStudents.length}</p>
-									</div>
-									<div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-										<p className="text-xs uppercase tracking-[0.2em] text-slate-400">groups</p>
-										<p className="mt-2 text-xl text-white">{campusCommunities.length}</p>
-									</div>
-								</div>
-								<div className="mt-5 space-y-3">
-									<div>
-										<p className="text-sm uppercase tracking-[0.2em] text-teal-200/72">Admin roster</p>
-										<div className="mt-2 flex flex-wrap gap-2">
-											{campusAdmins.map((admin) => (
-												<SchemaChip key={admin.adminId}>{admin.name}</SchemaChip>
-											))}
-										</div>
-									</div>
-									<div>
-										<p className="text-sm uppercase tracking-[0.2em] text-teal-200/72">Communities</p>
-										<div className="mt-2 flex flex-wrap gap-2">
-											{campusCommunities.map((community) => (
-												<SchemaChip key={community.communityId}>{community.name}</SchemaChip>
-											))}
-										</div>
-									</div>
-								</div>
-							</div>
-						);
-					})}
-				</div>
-			</SectionPanel>
-
-			<div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-				<SectionPanel
-					kicker="Admins"
-					title="Campus operators"
-					description="The `admin` table is small, but it deserves a clearer presentation than a hidden backend record."
-				>
-					<div className="space-y-3">
-						{campuses.map((campus) =>
-							adminsForCampus(campus.campusId).map((admin) => (
-								<div
-									key={admin.adminId}
-									className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4"
-								>
-									<div className="flex flex-wrap items-center justify-between gap-2">
-										<h3 className="text-lg font-semibold text-white">{admin.name}</h3>
-										<SchemaChip>{admin.adminId}</SchemaChip>
-									</div>
-									<p className="mt-2 text-sm text-slate-300">{admin.email}</p>
-									<p className="mt-2 text-sm text-teal-200/72">{campus.campusName}</p>
-								</div>
-							)),
-						)}
-					</div>
+			<div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+				<SectionPanel kicker="Create" title="Start a community">
+					{student ? (
+						<form onSubmit={create} className="space-y-4">
+							<input name="name" required placeholder="Community name" className="form-input" />
+							<select name="campusId" required className="form-input">
+								<option value="">Choose campus</option>
+								{campuses.map((campus) => (
+									<option key={campus.campusId} value={campus.campusId}>{campus.campusName}</option>
+								))}
+							</select>
+							<textarea name="description" rows={4} placeholder="What is this community for?" className="form-input resize-none" />
+							<button className="primary-button">Create community</button>
+						</form>
+					) : (
+						<LoginPrompt message="Login to create or join campus communities." />
+					)}
 				</SectionPanel>
 
-				<SectionPanel
-					kicker="Student mix"
-					title="Who belongs to each campus"
-					description="This section keeps `student.campus_id` visible so the frontend stays aligned with the schema."
-				>
-					<div className="space-y-4">
-						{campuses.map((campus) => (
-							<div
-								key={campus.campusId}
-								className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4"
-							>
-								<div className="flex flex-wrap items-center justify-between gap-3">
-									<h3 className="text-lg font-semibold text-white">{campus.campusName}</h3>
-									<SchemaChip>{campus.campusId}</SchemaChip>
-								</div>
-								<div className="mt-4 grid gap-3 sm:grid-cols-2">
-									{studentsForCampus(campus.campusId).map((student) => (
-										<div
-											key={student.studentId}
-											className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"
-										>
-											<p className="text-base font-semibold text-white">{student.name}</p>
-											<p className="mt-1 text-sm text-slate-300">{student.department}</p>
-											<p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">
-												{student.studentId} • Batch {student.batch}
-											</p>
-										</div>
-									))}
-								</div>
+				<SectionPanel kicker="Directory" title="Campus communities">
+					<div className="grid gap-4">
+						{!loading && communities.length === 0 ? (
+							<div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+								No communities exist yet.
 							</div>
+						) : null}
+						{communities.map((community) => (
+							<article key={community.communityId} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+								<div className="flex flex-wrap items-center justify-between gap-3">
+									<div className="flex flex-wrap gap-2">
+										<SchemaChip>{community.campusName || community.campusId}</SchemaChip>
+										<SchemaChip>{community.memberCount || 0} members</SchemaChip>
+										<SchemaChip>{community.postCount || 0} posts</SchemaChip>
+									</div>
+									<button disabled={!student || community.joined} onClick={() => join(community.communityId)} className="secondary-button">
+										<Users className="h-4 w-4" />
+										{community.joined ? 'Joined' : 'Join'}
+									</button>
+								</div>
+								<h2 className="mt-4 text-lg font-semibold text-white">{community.name}</h2>
+								<p className="mt-2 text-sm leading-6 text-slate-300">{community.description}</p>
+								<button type="button" onClick={() => showMembers(community.communityId)} className="secondary-button mt-4">Show members</button>
+								{members[community.communityId] ? (
+									<div className="mt-4 grid gap-2 sm:grid-cols-2">
+										{members[community.communityId].map((member) => (
+											<div key={member.studentId} className="rounded-md border border-white/10 bg-slate-950/50 p-3 text-sm">
+												<p className="font-medium text-white">{member.name}</p>
+												<p className="mt-1 text-slate-400">{member.department} · Batch {member.batch}</p>
+											</div>
+										))}
+									</div>
+								) : null}
+							</article>
 						))}
 					</div>
 				</SectionPanel>
 			</div>
 		</PageShell>
+		</ProtectedRoute>
 	);
 }
